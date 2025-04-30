@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ServiceA;
@@ -7,10 +8,31 @@ namespace ServiceA;
 [Route("api/[controller]")]
 public class DemoController : ControllerBase
 {
-    [HttpPost("hello")]
-    public ActionResult Hello(DemoPayload input)
+    private readonly ILogger<DemoController> _logger;
+    private readonly DaprClient _daprClient;
+
+    public DemoController(ILogger<DemoController> logger, DaprClient daprClient)
     {
-        Debug.WriteLine(input);
+        _logger = logger;
+        _daprClient = daprClient;
+    }
+    
+    [HttpPost("hello")]
+    public async Task<ActionResult> Hello(DemoPayload input, [FromHeader] string traceparent)
+    {
+        _logger.LogInformation("{Input}", input);
+        _logger.LogInformation("{Traceparent}", traceparent);
+        
+        var updatedInput = input with { Value = "Hello from Service A" };
+        
+        var request = _daprClient.CreateInvokeMethodRequest(
+            "service-b",
+            "api/demo/hello",
+            updatedInput);
+        
+        request.Headers.Add("traceparent", traceparent);
+
+        await _daprClient.InvokeMethodAsync(request);
         
         return Ok();
     }

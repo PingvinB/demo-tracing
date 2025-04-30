@@ -19,7 +19,6 @@ services:
       "--app-id", "service-a",
       "--app-port", "8080",
       "--resources-path", "/components",
-      "--log-level", "debug",
       "--config", "/config/config.yml"
     ]
     volumes:
@@ -32,6 +31,32 @@ services:
         condition: service_healthy
     network_mode: "service:service-a"
 
+  service-b:
+    build:
+      context: .
+      dockerfile: src/ServiceB/Dockerfile
+    tty: true
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - 5002:8080
+
+  service-b-dapr:
+    image: "daprio/daprd:edge"
+    tty: true
+    command: [
+      "./daprd",
+      "--app-id", "service-b",
+      "--app-port", "8080",
+      "--config", "/config/config.yml"
+    ]
+    volumes:
+      - "./dapr/config.yml:/config/config.yml"
+    depends_on:
+      service-b:
+        condition: service_started
+    network_mode: "service:service-b"
+    
   jaeger:
     image: jaegertracing/all-in-one:latest
     restart: unless-stopped
