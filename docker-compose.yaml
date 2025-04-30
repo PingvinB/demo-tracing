@@ -1,0 +1,69 @@
+﻿name: demo-tracing
+
+services:
+  service-a:
+    build:
+      context: .
+      dockerfile: src/ServiceA/Dockerfile
+    tty: true
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - 5001:8080
+
+  service-a-dapr:
+    image: "daprio/daprd:edge"
+    tty: true
+    command: [
+      "./daprd",
+      "--app-id", "service-a",
+      "--app-port", "8080",
+      "--resources-path", "/components",
+      "--log-level", "debug",
+      "--config", "/config/config.yml"
+    ]
+    volumes:
+      - "./dapr/service-a/:/components"
+      - "./dapr/config.yml:/config/config.yml"
+    depends_on:
+      service-a:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:service-a"
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    ports:
+      - "4317:4317" # Collector gRPC
+      - "4318:4318" # Collector HTTP
+      - "16686:16686" # UI
+      - "14269:14269" # Admin
+    environment:
+      SPAN_STORAGE_TYPE: badger
+      LOG_LEVEL: debug
+      
+  rabbitmq:
+    build: 
+      context: ./rabbitmq
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "5552:5552"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/conf.d/80-custom.conf
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_interval: 5s
+      start_period: 30s
+
+volumes:
+  rabbitmq-data:
+    driver: local
