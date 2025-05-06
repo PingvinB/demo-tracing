@@ -48,14 +48,48 @@ services:
       "./daprd",
       "--app-id", "service-b",
       "--app-port", "8080",
+      "--resources-path", "/components",
       "--config", "/config/config.yml"
     ]
     volumes:
+      - "./dapr/service-b/:/components"
       - "./dapr/config.yml:/config/config.yml"
     depends_on:
       service-b:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     network_mode: "service:service-b"
+    
+  service-c:
+    build:
+      context: .
+      dockerfile: src/ServiceC/Dockerfile
+    tty: true
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - 5003:8080
+
+  service-c-dapr:
+    image: "daprio/daprd:edge"
+    tty: true
+    command: [
+      "./daprd",
+      "--app-id", "service-c",
+      "--app-port", "8080",
+      "--resources-path", "/components",
+      "--config", "/config/config.yml"
+    ]
+    volumes:
+      - "./dapr/service-c/:/components"
+      - "./dapr/config.yml:/config/config.yml"
+    depends_on:
+      service-c:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    network_mode: "service:service-c"
     
   jaeger:
     image: jaegertracing/all-in-one:latest

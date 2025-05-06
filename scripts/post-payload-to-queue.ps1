@@ -1,6 +1,6 @@
 $rabbitPayload = @{
-    value = "test1"
-    timestamp = (Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
+    demoValue = "test1"
+    demoTimestamp = (Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ss.fffZ")
 } | ConvertTo-Json
 
 rabbitmqadmin `

@@ -1,0 +1,11 @@
+apiVersion: dapr.io/v2alpha1
+kind: Subscription
+metadata:
+  name: subscription-service-c
+spec:
+  topic: "queue-y"
+  routes:
+    default: /api/demo/hello
+  pubsubname: rabbitmq-pubsub-service-c
+  # metadata:
+  #   isRawPayload: "true"
