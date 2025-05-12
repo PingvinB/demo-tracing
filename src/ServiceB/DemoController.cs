@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,22 +20,14 @@ public class DemoController : ControllerBase
     [HttpPost("hello")]
     public async Task<ActionResult> Hello(DemoPayload input, [FromHeader] string traceparent)
     {
-        _logger.LogInformation("Input: {Input}", input);
         _logger.LogInformation("Traceparent: {Traceparent}", traceparent);
+        _logger.LogInformation("Current Activity Id: {ActivityId} (ParentSpanId: {ParentSpanId})", Activity.Current?.Id,
+            Activity.Current?.ParentSpanId);
 
         var updatedInput = input with { DemoValue = input.DemoValue + " and from Service B" };
 
-        // Example 2 without cloudevent.traceparent header/metadata:
         await _daprClient.PublishEventAsync("rabbitmq-pubsub-service-b", "queue-y", updatedInput);
 
-        // Example 3 with cloudevent.traceparent header/metadata:
-        // var metadata = new Dictionary<string, string>
-        // {
-        //     { "cloudevent.traceparent", traceparent },
-        // };
-        //
-        // await _daprClient.PublishEventAsync("rabbitmq-pubsub-service-b", "queue-y", updatedInput, metadata);
-        
         return Ok();
     }
 }

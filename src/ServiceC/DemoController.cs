@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Dapr;
 using Microsoft.AspNetCore.Mvc;
@@ -18,9 +19,12 @@ public class DemoController : ControllerBase
     [HttpPost("hello")]
     public ActionResult Hello(CloudEvent<DemoPayload> input, [FromHeader] string traceparent)
     {
+        _logger.LogInformation("Traceparent: {Traceparent}", traceparent);
+        _logger.LogInformation("Current Activity Id: {ActivityId} (ParentSpanId: {ParentSpanId})", Activity.Current?.Id,
+            Activity.Current?.ParentSpanId);
+        
         var serializedCloudEvent = JsonSerializer.Serialize(input);
         _logger.LogInformation("CloudEvent: {CloudEvent}", serializedCloudEvent);
-        _logger.LogInformation("Traceparent: {Traceparent}", traceparent);
         
         return Ok();
     }

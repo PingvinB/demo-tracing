@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Dapr.Client;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,8 +20,9 @@ public class DemoController : ControllerBase
     [HttpPost("hello")]
     public async Task<ActionResult> Hello(DemoPayload input, [FromHeader] string traceparent)
     {
-        _logger.LogInformation("Input: {Input}", input);
         _logger.LogInformation("Traceparent: {Traceparent}", traceparent);
+        _logger.LogInformation("Current Activity Id: {ActivityId} (ParentSpanId: {ParentSpanId})", Activity.Current?.Id,
+            Activity.Current?.ParentSpanId);
         
         var updatedInput = input with { DemoValue = "Hello from Service A" };
         
@@ -29,7 +31,7 @@ public class DemoController : ControllerBase
             "api/demo/hello",
             updatedInput);
         
-        request.Headers.Add("traceparent", traceparent);
+        request.Headers.Add("traceparent", Activity.Current?.Id ?? traceparent);
 
         await _daprClient.InvokeMethodAsync(request);
         
